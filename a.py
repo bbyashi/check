@@ -11,8 +11,8 @@ import os
 # ===== CONFIG =====
 API_ID = 21189715
 API_HASH = '988a9111105fd2f0c5e21c2c2449edfd'
-BOT_TOKEN = '8388314171:AAFXrRKZU0d7XMRP5sRNi89ixXXzYGo0_Ws'
-OWNER_ID = 8111174619  # controller owner Telegram ID
+BOT_TOKEN = '8253875986:AAFdRF3ynv4-aDgUVIGM77sBVfnyanD9X9c'
+OWNER_ID = 8331749547  # controller owner Telegram ID
 MONGO_URI = os.environ.get('MONGO_URI', 'mongodb+srv://codexkairnex:gm6xSxXfRkusMIug@cluster0.bplk1.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0')
 
 controller = TelegramClient('controller_bot', API_ID, API_HASH).start(bot_token=BOT_TOKEN)
