@@ -162,23 +162,31 @@ async def broadcast_group(event):
 async def join_group(event):
     target = event.pattern_match.group(1).strip()
     report = ""
+
     for name, client in userbots.items():
         try:
-            if target.startswith("https://t.me/joinchat/"):  # private group
-                hash_part = target.split('/')[-1]
-                await client(ImportChatInviteRequest(hash_part))
-            else:  # public group via @username
-                if target.startswith('@'):
-                    target = target[1:]
-                await client(JoinChannelRequest(target))
-            report += f"{name} → Joined successfully ✅\n"
+            # --- Private group or channel link ---
+            if "joinchat" in target or target.startswith("https://t.me/+"):
+                # Extract only the hash part
+                invite_hash = target.split("/")[-1].replace("+", "")
+                await client(ImportChatInviteRequest(invite_hash))
+                report += f"{name} → Joined via private link ✅\n"
+
+            # --- Public group or channel link ---
+            else:
+                username = target.replace("https://t.me/", "").lstrip("@")
+                await client(JoinChannelRequest(username))
+                report += f"{name} → Joined @{username} ✅\n"
+
         except UserAlreadyParticipantError:
-            report += f"{name} → Already a member ⚠\n"
+            report += f"{name} → Already joined ⚠️\n"
         except InviteHashInvalidError:
             report += f"{name} → Invalid invite link ❌\n"
         except Exception as e:
             report += f"{name} → Failed: {e}\n"
+
     await event.reply(f"📥 Join Report:\n{report}")
+
 
 
 # ===== Leave Group / Channel =====
