@@ -72,6 +72,23 @@ async def add_session(event):
         await event.reply(f"❌ Failed to add session: {e}")
 
 
+@controller.on(events.NewMessage(from_users=OWNER_ID, pattern=r'^/remove_session (.+)'))
+async def remove_session(event):
+    name = event.pattern_match.group(1).strip()
+
+    if name not in userbots:
+        await event.reply(f"⚠️ Session `{name}` not found.")
+        return
+
+    try:
+        await userbots[name].disconnect()
+        del userbots[name]
+        await sessions_collection.delete_one({"name": name})
+        await event.reply(f"🗑️ Session `{name}` removed successfully.")
+    except Exception as e:
+        await event.reply(f"❌ Error removing session `{name}`:\n`{e}`")
+
+
 # ===== List Active Sessions =====
 @controller.on(events.NewMessage(from_users=OWNER_ID, pattern=r'^/list_sessions'))
 async def list_sessions(event):
