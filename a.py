@@ -2,18 +2,18 @@ import asyncio
 from telethon import TelegramClient, events
 from telethon.sessions import StringSession
 from telethon.tl.types import Channel, Chat, User
-from telethon.tl.functions.channels import JoinChannelRequest, LeaveChannelRequest
-from telethon.tl.functions.messages import ImportChatInviteRequest
-from telethon.errors import UserAlreadyParticipantError, InviteHashInvalidError
+from telethon.tl.functions.channels import JoinChannelRequest, LeaveChannelRequest, GetFullChannelRequest
+from telethon.tl.functions.messages import ImportChatInviteRequest, CheckChatInviteRequest
+from telethon.errors import UserAlreadyParticipantError, InviteHashInvalidError, FloodWaitError, UserNotParticipantError
 import motor.motor_asyncio
 import os
 
 # ===== CONFIG =====
 API_ID = 21189715
 API_HASH = '988a9111105fd2f0c5e21c2c2449edfd'
-BOT_TOKEN = '8253875986:AAFdRF3ynv4-aDgUVIGM77sBVfnyanD9X9c'
+BOT_TOKEN = '8366485956:AAGZmX9wTyYuxSIZNW0xTWsgOY8LGwLqoAk'
 OWNER_ID = 8331749547  # controller owner Telegram ID
-MONGO_URI = os.environ.get('MONGO_URI', 'mongodb+srv://codexkairnex:gm6xSxXfRkusMIug@cluster0.bplk1.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0')
+MONGO_URI = os.environ.get('MONGO_URI', 'mongodb+srv://ayanosuvii0925:subhichiku123@cluster0.uw8yxkl.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0')
 
 controller = TelegramClient('controller_bot', API_ID, API_HASH).start(bot_token=BOT_TOKEN)
 
@@ -189,29 +189,54 @@ async def join_group(event):
 
 
 
+
 # ===== Leave Group / Channel =====
 @controller.on(events.NewMessage(from_users=OWNER_ID, pattern=r'^/leave (.+)'))
 async def leave_group(event):
     target = event.pattern_match.group(1).strip()
     report = ""
+
     for name, client in userbots.items():
         try:
-            if target.startswith("-100") or target.isdigit():  # chat_id
+            chat = None
+            chat_id = None
+
+            # Detect chat ID / username / invite
+            if target.startswith("-100") or target.isdigit():
                 chat_id = int(target)
-            elif target.startswith("https://t.me/joinchat/"):  # private link
-                hash_part = target.split('/')[-1]
-                result = await client(ImportChatInviteRequest(hash_part))
-                chat_id = result.chats[0].id
-            else:  # public group via @username
-                if target.startswith('@'):
-                    target = target[1:]
-                chat = await client.get_entity(target)
-                chat_id = chat.id
-            await client(LeaveChannelRequest(chat_id))
-            report += f"{name} → Left successfully ✅\n"
+                chat = await client(GetFullChannelRequest(chat_id))
+            elif "joinchat" in target or target.startswith("https://t.me/+"):
+                invite_hash = target.split("/")[-1].replace("+", "")
+                try:
+                    invite = await client(CheckChatInviteRequest(invite_hash))
+                    if invite.chat:
+                        chat_id = invite.chat.id
+                except UserAlreadyParticipantError:
+                    pass
+                except FloodWaitError as e:
+                    report += f"{name} → Wait {e.seconds}s (Telegram flood-wait) ⚠️\n"
+                    continue
+            else:
+                username = target.replace("https://t.me/", "").lstrip("@")
+                entity = await client.get_entity(username)
+                chat_id = entity.id
+
+            # Try to leave
+            if chat_id:
+                try:
+                    await client(LeaveChannelRequest(chat_id))
+                    report += f"{name} → Left successfully ✅\n"
+                except UserNotParticipantError:
+                    report += f"{name} → Not a member ⚠️\n"
+            else:
+                report += f"{name} → Could not resolve chat ID ❌\n"
+
         except Exception as e:
             report += f"{name} → Failed: {e}\n"
+
     await event.reply(f"📤 Leave Report:\n{report}")
+
+
 
 # ===== Startup tasks =====
 controller.loop.create_task(load_sessions())
