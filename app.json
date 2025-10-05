@@ -2,7 +2,7 @@
   "name": "telethon-controller-bot",
   "description": "Multi-session Telethon controller bot with broadcast, join/leave, and MongoDB support",
   "repository": "https://github.com/yourusername/telethon-controller-bot",
-  "stack": "heroku-24",
+  "stack": "heroku-22",
   "env": {
     "API_ID": {
       "description": "Your Telegram API ID",
@@ -28,7 +28,7 @@
   "formation": {
     "worker": {
       "quantity": 1,
-      "size": "free"
+      "size": "Standard-1X"
     }
   },
   "buildpacks": [
